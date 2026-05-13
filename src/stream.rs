@@ -2,8 +2,9 @@
 use binance::websockets::*;
 use std::sync::atomic::{AtomicBool};
 use std::thread;
-use std::sync::{Arc, Mutex}; // Добавили Mutex
+use std::sync::{Arc, Mutex}; 
 use std::collections::HashMap;
+use std::time::SystemTime;
 
 #[derive(Debug, Clone)]
 pub struct PricePair {
@@ -11,6 +12,7 @@ pub struct PricePair {
     pub ask_price: Vec<f64>,
     pub qty_bid: Vec<f64>,
     pub qty_ask: Vec<f64>,
+    pub timestamp: u64,
 }
 
 pub struct Stream {
@@ -63,6 +65,7 @@ pub fn create_stream_3(pair1: &str, pair2: &str, pair3: &str) -> Stream {
                     ask_price: asks,
                     qty_bid: bids_qty,
                     qty_ask: asks_qty,
+                    timestamp: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).expect("Can't get timestamp").as_secs(),
                 };
 
                 if let Ok(mut map) = hmap_clone.lock() {
