@@ -2,6 +2,8 @@ mod stream;
 mod config;
 mod logic_arbitrage;
 mod strategy;
+mod notify;
+
 
 use std::thread;
 use std::time::Duration;
