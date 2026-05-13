@@ -20,7 +20,7 @@ impl Config {
     pub fn load() -> Self {
         let args = Args::parse();
 		
-        let default_pairs = ["ETHBTC", "BNBETH", "ETHUSD"];
+        let default_pairs = ["BTCUSDT", "ETHBTC", "ETHUSDT"];
 
         let final_pairs = match args.pairs {
             Some(p) if p.len() == 3 => [
