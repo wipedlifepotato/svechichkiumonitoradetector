@@ -6,8 +6,14 @@ mod config;
 fn main() {
 	let cfg: config::Config = config::Config::load();
 	
-	let s = stream::Create_stream_3(cfg.pairs[0], cfg.pairs[1], cfg.pairs[2]);//, cfg.best_choice);//VA_ARGS?
-
+	let s = stream::create_stream_3(cfg.pairs[0], cfg.pairs[1], cfg.pairs[2]);//, cfg.best_choice);//VA_ARGS?
+    thread::sleep(Duration::from_secs(15));
+	
+	if let Ok(data) = s.values.lock() {
+			if let Some(eth_prices) = data.get("ETHBTC") {
+				dbg!(eth_prices);
+			}
+	}
     /*
     let market: Market = Binance::new(None, None);
 
