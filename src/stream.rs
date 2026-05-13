@@ -19,7 +19,7 @@ pub struct Stream {
 }
 
 /// TODO: to vec
-pub fn Create_stream(pair1: &str,pair2: &str,pair3: &str) ->  Stream {
+pub fn Create_stream_3(pair1: &str,pair2: &str,pair3: &str) ->  Stream {
 	
     let endpoints = [pair1, pair2, pair3] //["ETHBTC", "BNBETH", "ETHUSD"]
         .map(|symbol| format!("{}@depth@100ms", symbol.to_lowercase()));

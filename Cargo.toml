@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 binance = { git = "https://github.com/ccxt/binance-rs.git" }
+serde = { version = "1.0", features = ["derive"] }
+#toml = "0.8"
+#rust-ini = "0.21"
+clap = { version = "4.0", features = ["derive"] }
