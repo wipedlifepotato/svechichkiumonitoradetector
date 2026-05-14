@@ -32,13 +32,6 @@ jobs:
             artifact_name: svechichki-windows-x64
             binary_name: svechichkiumonitoradetector.exe
 
-          # --- Android (ARM64) ---
-          - os: ubuntu-latest
-            artifact_name: svechichki-android
-            target: aarch64-linux-android
-            binary_name: svechichkiumonitoradetector
-            is_android: true
-
     steps:
       - uses: actions/checkout@v4
 
@@ -57,13 +50,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-
-      - name: Build Android
-        if: matrix.is_android == true
-        run: |
-          export ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$(ls $ANDROID_SDK_ROOT/ndk | head -1)
-          cargo install cargo-ndk
-          cargo ndk -t ${{ matrix.target }} build --release
 
       - name: Build Desktop (Windows, Linux, macOS)
         if: matrix.is_android != true

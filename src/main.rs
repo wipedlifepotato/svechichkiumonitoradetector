@@ -119,7 +119,7 @@ async fn main() {
         if let Ok(data) = s.values.lock() {
             if let Some(msg) = strategy.analyze(&data) {
 //                println!("{}", msg); 
-				  strategy.alert(&msg);
+				  strategy.alert(&msg).await;
             }
         }
         tokio::time::sleep(Duration::from_millis(100)).await;
