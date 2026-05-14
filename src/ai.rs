@@ -35,7 +35,7 @@ pub fn new() -> Self {
 			Recent price and volume changes: {data}. \
 			Is this organic growth or market manipulation (pump and dump)? \
 			Reply concisely in one sentence. Start with 'REAL' or 'MANIPULATION', \
-			then briefly state if the price is likely to 'CONTINUE' or 'REVERT'.",
+			then briefly state if the price is likely to 'CONTINUE' or 'REVERT'. Give answer on russian language",
 			pair = pair,
 			data = data
 		);
@@ -65,6 +65,6 @@ pub fn new() -> Self {
 						"Не удалось распарсить ответ от ИИ"
 					})?;
 
-				Ok(ai_text)
+				Ok(format!("{}:{}",pair,ai_text))
 		  }
 }
