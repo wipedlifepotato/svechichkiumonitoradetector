@@ -87,22 +87,34 @@ async fn main() {
 
 
 	if env::var("LUA_ENABLED").unwrap_or("TRUE".to_string()).to_uppercase() == "TRUE" {
+		if let Ok(entries) = std::fs::read_dir("./scripts") {
+			for entry in entries.flatten() {
+				let path = entry.path();
+				
+				if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("lua") {
+					
+					let app_data = Arc::clone(&s.values);
+					let pairs = cfg.pairs.clone();
+					let strategy = Arc::clone(&strategy);
+					let script_path = path.clone();
 
-		tokio::task::spawn_blocking(move || {
-			println!("Starting Lua execution thread...");
-			let lua_res = crate::lua_logic::init_lua(
-				app_data_for_lua,
-				pairs_for_lua,
-				strategy_for_lua
-			);
+					tokio::task::spawn_blocking(move || {
+						println!("Launching Lua instance for: {:?}", script_path);
+						
+						let lua_res = crate::lua_logic::init_lua(app_data, pairs, strategy);
 
-			match lua_res {
-				Ok(lua_instance) => {
-					let _ = crate::lua_logic::load_scripts(&lua_instance, "./scripts");
+						match lua_res {
+							Ok(lua) => {
+								if let Err(e) = lua.load(script_path.clone()).exec() {
+									println!("Error in script {:?}: {:?}", script_path, e);
+								}
+							}
+							Err(e) => println!("Failed to init Lua for {:?}: {:?}", script_path, e),
+						}
+					});
 				}
-				Err(e) => println!("Failed to init Lua: {:?}", e),
 			}
-		});
+		}
 	}
     println!("Detector running | Mode: {:?} | Pairs: {}", cfg.mode, cfg.pairs.len());
 

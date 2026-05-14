@@ -33,10 +33,10 @@ local data = get_market_data(active_pairs[1])
 if data and #data > 2 then
     local last = data[#data].bid_price[1]
     local prev = data[#data-1].bid_price[1]
-    print("last:", last)
-    print("prev:", prev)
-    if last > prev * 1.05 then
-        send_to_rust_alert("LUA DETECTED PUMP: ".. active_pairs[1] .. " price jumped to " .. last)
+    print("last1:", last)
+    print("prev1:", prev)
+    if last < prev * 1.05 then
+        send_to_rust_alert("LUA DETECTED DUMP: ".. active_pairs[1] .. " price jumped to " .. last)
     else
 	    --send_to_rust_alert("just a test")
     end
