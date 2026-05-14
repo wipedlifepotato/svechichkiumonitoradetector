@@ -1,4 +1,4 @@
-os.exit(0)
+--os.exit(0)
 function dump(o)
    if type(o) == 'table' then
       local s = '{ '
@@ -41,7 +41,7 @@ if data and #data > 2 then
 	    --send_to_rust_alert("just a test")
     end
 end
-sleep(1000)
+sleep(1000000)
 end
 
 --while true do

@@ -19,4 +19,10 @@ plotters = "0.3"
 image = "0.24" 
 dotenvy = "0.15.7"
 async-trait = "0.1.89"
-mlua = { version="0.11.6" , features = ["luajit"] }
+
+[target.'cfg(not(target_os = "openbsd"))'.dependencies]
+mlua = { version = "0.10", features = ["async", "luajit", "vendored"] }
+
+# Настройки специально для OpenBSD
+[target.'cfg(target_os = "openbsd")'.dependencies]
+mlua = { version = "0.10", features = ["async", "lua54"] }
