@@ -32,7 +32,7 @@ pub struct WebhookNotifier {
 
 impl Notifier for WebhookNotifier {
     fn send(&self, message: &str) {
-        todo!("not implemented");
+        todo!("not implemented:{}", message);
     }
 }
 

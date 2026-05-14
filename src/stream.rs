@@ -6,7 +6,9 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-#[derive(Debug, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PricePair {
     pub bid_price: Vec<f64>,
     pub ask_price: Vec<f64>,
@@ -45,7 +47,9 @@ pub fn create_stream(p :Vec::<String>) -> Stream {
         let mut web_socket = WebSockets::new(move |event: WebsocketEvent| {
             if let WebsocketEvent::DepthOrderBook(depth_order_book) = event {
                 let symbol = depth_order_book.symbol.to_uppercase();
-                
+                if depth_order_book.bids.is_empty() || depth_order_book.asks.is_empty() {
+					return Ok(()); 
+				}
                 let mut bids = Vec::new();
                 let mut bids_qty = Vec::new();
                 let mut asks = Vec::new();
@@ -72,7 +76,7 @@ pub fn create_stream(p :Vec::<String>) -> Stream {
                     if let Some(vec) = map.get_mut(&symbol) {
 						//dbg!(&new_data);
                         vec.push(new_data);
-                        if vec.len() > 25 {
+                        if vec.len() > 100 {
 							vec.remove(0); 
 						}
 						//if vec.len() > 2 {
