@@ -26,8 +26,8 @@ pub trait ArbitrageStrategy: Send + Sync {
             let token = env::var("BOT_TG_FATHER_KEY").unwrap_or_default();
 
             let chat_id = env::var("BOT_TG_USERID").unwrap_or_default();
-            let charts_base_url = env::var("CHARTS_URL").unwrap_or(format!("http://127.0.0.1:{}/charts", cfg.port).to_string());
-
+			let charts_base_url = env::var("CHARTS_URL")
+				.unwrap_or_else(|_| format!("http://127.0.0.1:{}/charts", cfg.port));
             let n = TGNotifier::new(&token, &chat_id);
 			let charts_base_url = env::var("CHARTS_URL").unwrap_or("http://127.0.0.1:3000".to_string());
 			for pair_name in cfg.pairs {

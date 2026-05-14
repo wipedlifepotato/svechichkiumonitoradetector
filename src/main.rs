@@ -5,7 +5,9 @@ mod logic_pricechange;
 mod strategy;
 mod notify;
 mod charts;
+mod ai;
 
+use std::env;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::time::Duration;
@@ -15,6 +17,7 @@ use crate::stream::{PricePair};
 use axum::Extension;
 use crate::logic_arbitrage::TriangleArbitrage; 
 use crate::logic_pricechange::PriceChangeDetector;
+use std::time;
 
 use axum::{
     routing::get, 
@@ -114,14 +117,39 @@ async fn main() {
         println!("HTTP Server listening on http://{}", addr);
         axum::serve(listener, app).await.unwrap();
     });
-
+	let mut now_time = std::time::Instant::now();
+	let mut first_launch = true;
     loop {
         if let Ok(data) = s.values.lock() {
             if let Some(msg) = strategy.analyze(&data) {
 //                println!("{}", msg); 
 				  strategy.alert(&msg).await;
             }
+            if env::var("GEMINI_ENABLED").unwrap_or("false".to_string()).to_string().to_uppercase() == "TRUE" {
+				//println!("Init gemini");
+				let ai = crate::ai::GeminiClient::new();
+				for pair_name in &cfg.pairs {
+						if first_launch == false && now_time.elapsed().as_secs() < 60 {
+							continue;
+						}
+						//println!("Get data for gemini");
+					    if let Some(history) = data.get(pair_name) {
+							if history.is_empty() || history.len() < 90 {
+								continue;
+							}
+							let d = serde_json::to_string(&history).unwrap();
+
+							let ai_opinion = ai.analyze(&pair_name, &d).await.unwrap_or_default();
+							strategy.alert(&ai_opinion).await;
+							first_launch = false;
+						}
+				}
+				if now_time.elapsed().as_secs() > 60 {
+					now_time = std::time::Instant::now();
+				}
+			}
         }
+        
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 }
