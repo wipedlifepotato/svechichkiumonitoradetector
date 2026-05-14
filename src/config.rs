@@ -44,7 +44,7 @@ pub struct Config {
 impl Config {
     pub fn load() -> Self {
         let args = Args::parse();
-
+		dotenvy::dotenv().ok();
         let pairs = if args.pairs.is_empty() {
             vec![
                 "BTCUSDT".to_string(),
