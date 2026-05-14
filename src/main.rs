@@ -103,6 +103,8 @@ async fn run_lua_scripts(
     }
 }
 
+
+// TODO: fix multiple pairs name ?
 async fn perform_ai_analysis(
     data: Arc<Mutex<HashMap<String, Vec<PricePair>>>>,
     cfg: config::Config,
@@ -137,6 +139,7 @@ async fn perform_ai_analysis(
 
 #[tokio::main]
 async fn main() {
+	dotenvy::dotenv().ok();
     let cfg = config::Config::load();
     let s = stream::create_stream(cfg.pairs.clone());
     
@@ -177,8 +180,10 @@ async fn main() {
                 }
             }
         }
-
-        if env::var("GEMINI_ENABLED").unwrap_or_default() == "TRUE" && ai_timer.elapsed().as_secs() >= 60 {
+		//println!("{}",env::var("GEMINI_ENABLED").unwrap_or("TRUE".to_string()).to_uppercase() == "TRUE");
+		//println!("{}", ai_timer.elapsed().as_secs() );
+        if env::var("GEMINI_ENABLED").unwrap_or("TRUE".to_string()).to_uppercase() == "TRUE" && ai_timer.elapsed().as_secs() >= 60 {
+			println!("Call gemini");
             let data_clone = Arc::clone(&s.values);
             let cfg_clone = cfg.clone();
             let strat_clone = Arc::clone(&strategy);
