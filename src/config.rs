@@ -25,6 +25,8 @@ struct Args {
 	#[arg(long, default_value_t = String::from("USDT"))]
     initial_asset: String,
      
+    #[arg(long, default_value_t = 3000)]
+    port: u16,
     
 }
 
@@ -35,6 +37,8 @@ pub struct Config {
     pub threshold: f64, 
     pub target_price: f64,
     pub initial_asset: String,
+    pub port: u16,
+
 }
 
 impl Config {
@@ -60,6 +64,7 @@ impl Config {
             threshold: args.threshold,
             target_price: args.target_price,
             initial_asset: args.initial_asset.to_uppercase(),
+            port: args.port
         }
     }
 }
