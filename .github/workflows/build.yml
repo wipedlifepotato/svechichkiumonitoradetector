@@ -18,9 +18,9 @@ jobs:
       matrix:
         include:
           # --- Apple / macOS ---
-          - os: macos-latest
-            artifact_name: svechichki-macos
-            binary_name: svechichkiumonitoradetector
+#          - os: macos-latest
+#            artifact_name: svechichki-macos
+#            binary_name: svechichkiumonitoradetector
 
           # --- Linux x64 ---
           - os: ubuntu-latest
