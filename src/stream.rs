@@ -6,7 +6,9 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use std::time::SystemTime;
 
-#[derive(Debug, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PricePair {
     pub bid_price: Vec<f64>,
     pub ask_price: Vec<f64>,
@@ -21,8 +23,8 @@ pub struct Stream {
     pub values: Arc<Mutex<HashMap<String, Vec<PricePair>>>>,
 }
 
-pub fn create_stream_3(pair1: &str, pair2: &str, pair3: &str) -> Stream {
-    let pairs = vec![pair1.to_string(), pair2.to_string(), pair3.to_string()];
+pub fn create_stream(p :Vec::<String>) -> Stream {
+    let pairs = p; //vec![pair1.to_string(), pair2.to_string(), pair3.to_string()];
     
     let endpoints: Vec<String> = pairs
         .iter()
@@ -45,7 +47,9 @@ pub fn create_stream_3(pair1: &str, pair2: &str, pair3: &str) -> Stream {
         let mut web_socket = WebSockets::new(move |event: WebsocketEvent| {
             if let WebsocketEvent::DepthOrderBook(depth_order_book) = event {
                 let symbol = depth_order_book.symbol.to_uppercase();
-                
+                if depth_order_book.bids.is_empty() || depth_order_book.asks.is_empty() {
+					return Ok(()); 
+				}
                 let mut bids = Vec::new();
                 let mut bids_qty = Vec::new();
                 let mut asks = Vec::new();
@@ -70,7 +74,14 @@ pub fn create_stream_3(pair1: &str, pair2: &str, pair3: &str) -> Stream {
 
                 if let Ok(mut map) = hmap_clone.lock() {
                     if let Some(vec) = map.get_mut(&symbol) {
+						//dbg!(&new_data);
                         vec.push(new_data);
+                        if vec.len() > 100 {
+							vec.remove(0); 
+						}
+						//if vec.len() > 2 {
+						//	vec.drain(0..vec.len() - 2);
+						//}
                     }
                 }
             }
