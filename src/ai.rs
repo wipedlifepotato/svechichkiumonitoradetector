@@ -35,9 +35,10 @@ pub fn new() -> Self {
 			Recent price and volume changes: {data}. \
 			Is this organic growth or market manipulation (pump and dump)? \
 			Reply concisely in one sentence. Start with 'REAL' or 'MANIPULATION', \
-			then briefly state if the price is likely to 'CONTINUE' or 'REVERT'. Give answer on russian language",
+			then briefly state if the price is likely to 'CONTINUE' or 'REVERT'. Give answer on {lang} language",
 			pair = pair,
-			data = data
+			data = data,
+			lang = std::env::var("LANGUAGE_AI").unwrap_or("ENGLISH".to_string())
 		);
         let body = json!({
             "contents": [{
