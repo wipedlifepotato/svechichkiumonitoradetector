@@ -79,29 +79,31 @@ async fn main() {
             })
         }
     };
+	let strategy = Arc::new(raw_strategy);
 
-    let strategy = Arc::new(raw_strategy);
+	let app_data_for_lua = Arc::clone(&s.values);
+	let pairs_for_lua = cfg.pairs.clone();
+	let strategy_for_lua = Arc::clone(&strategy);
 
-    let app_data_for_lua = Arc::clone(&s.values);
-    let pairs_for_lua = cfg.pairs.clone();
-    let strategy_for_lua = Arc::clone(&strategy);
 
-    tokio::task::spawn_blocking(move || {
-		println!("Starting Lua execution thread...");
-		let lua_res = crate::lua_logic::init_lua(
-			app_data_for_lua,
-			pairs_for_lua,
-			strategy_for_lua
-		);
+	if env::var("LUA_ENABLED").unwrap_or("TRUE".to_string()).to_uppercase() == "TRUE" {
 
-		match lua_res {
-			Ok(lua_instance) => {
-				let _ = crate::lua_logic::load_scripts(&lua_instance, "./scripts");
+		tokio::task::spawn_blocking(move || {
+			println!("Starting Lua execution thread...");
+			let lua_res = crate::lua_logic::init_lua(
+				app_data_for_lua,
+				pairs_for_lua,
+				strategy_for_lua
+			);
+
+			match lua_res {
+				Ok(lua_instance) => {
+					let _ = crate::lua_logic::load_scripts(&lua_instance, "./scripts");
+				}
+				Err(e) => println!("Failed to init Lua: {:?}", e),
 			}
-			Err(e) => println!("Failed to init Lua: {:?}", e),
-		}
-	});
-
+		});
+	}
     println!("Detector running | Mode: {:?} | Pairs: {}", cfg.mode, cfg.pairs.len());
 
     let server_data = Arc::clone(&s.values);
