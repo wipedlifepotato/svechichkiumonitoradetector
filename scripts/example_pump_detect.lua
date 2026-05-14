@@ -24,9 +24,9 @@ print(LANGUAGE_AI)
 print("End global vars")
 
 print("Pump detector loaded!")
---while true do 
+while true do 
 
---print("active_pairs1=", active_pairs[1])
+print("active_pairs1=", active_pairs[1])
 local data = get_market_data(active_pairs[1])
 --print( dump(data) )
 if data and #data > 2 then
@@ -37,11 +37,10 @@ if data and #data > 2 then
     if last > prev * 1.05 then
         send_to_rust_alert("LUA DETECTED PUMP: ".. active_pairs[1] .. " price jumped to " .. last)
     else
-	    --send_to_rust_alert("just a test")
+--	    send_to_rust_alert("just a test")
     end
 end
-sleep(1000)
---end
+end
 
 --while true do
 --	send_to_rust_alert("JUST A TEST")
