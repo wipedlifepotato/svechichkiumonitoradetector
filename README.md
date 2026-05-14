@@ -21,3 +21,5 @@ On openbsd you need install luajit pkg
 
 
 <img width="862" height="567" alt="image" src="https://github.com/user-attachments/assets/552ce5d8-8530-4dbe-b81f-396af5d26e94" />
+<img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/b1ad5fe5-2753-4bff-baa8-e8072c4761ad" />
+<img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/33fa4b56-ac15-4bb5-8ddc-5247fda8727a" />
