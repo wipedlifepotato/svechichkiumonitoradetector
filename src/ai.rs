@@ -23,7 +23,7 @@ pub fn new() -> Self {
         }
     }
 
-    pub async fn analyze(&self, pair: &str, data: &str) -> Result<String, Box<dyn std::error::Error>> {
+    pub async fn analyze(&self, pair: &str, data: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
 		let model_name = "gemini-3.1-flash-lite"; 
 		let url = format!(
 			"https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",

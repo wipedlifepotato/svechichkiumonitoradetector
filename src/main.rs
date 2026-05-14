@@ -33,7 +33,9 @@ async fn handle_get_chart(
 ) -> impl IntoResponse {
     let pair = pair.to_uppercase();
     let lock = data.lock().unwrap();
+    //dbg!(&pair);
     if let Some(history) = lock.get(&pair) {
+	//	dbg!(&history);
         if history.is_empty() { return "No data".into_response(); }
         let png = crate::charts::generate_chart_png(&pair, history);
         return ([(header::CONTENT_TYPE, "image/png")], png).into_response();
@@ -54,13 +56,9 @@ async fn handle_json_history(
     (axum::http::StatusCode::NOT_FOUND, "Not found").into_response()
 }
 
-#[tokio::main]
-async fn main() {
-    let cfg = config::Config::load();
-    let pairs_to_stream = cfg.pairs.clone();
-    let s = stream::create_stream(pairs_to_stream);
 
-    let raw_strategy: Box<dyn ArbitrageStrategy> = match cfg.mode {
+fn create_strategy(cfg: &config::Config) -> Box<dyn ArbitrageStrategy> {
+    match cfg.mode {
         Mode::Triangle => {
             Box::new(TriangleArbitrage {
                 p1: cfg.pairs[0].clone(),
@@ -78,45 +76,71 @@ async fn main() {
                 target_price: Some(cfg.target_price),
             })
         }
-    };
-	let strategy = Arc::new(raw_strategy);
+    }
+}
 
-	let app_data_for_lua = Arc::clone(&s.values);
-	let pairs_for_lua = cfg.pairs.clone();
-	let strategy_for_lua = Arc::clone(&strategy);
+async fn run_lua_scripts(
+    app_data: Arc<Mutex<HashMap<String, Vec<PricePair>>>>,
+    pairs: Vec<String>,
+    strategy: Arc<Box<dyn ArbitrageStrategy>>
+) {
+    if let Ok(entries) = std::fs::read_dir("./scripts") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("lua") {
+                let d = Arc::clone(&app_data);
+                let p = pairs.clone();
+                let s = Arc::clone(&strategy);
+                let script_path = path.clone();
 
+                tokio::task::spawn_blocking(move || {
+                    if let Ok(lua) = crate::lua_logic::init_lua(d, p, s) {
+                        let _ = lua.load(script_path).exec();
+                    }
+                });
+            }
+        }
+    }
+}
 
-	if env::var("LUA_ENABLED").unwrap_or("TRUE".to_string()).to_uppercase() == "TRUE" {
-		if let Ok(entries) = std::fs::read_dir("./scripts") {
-			for entry in entries.flatten() {
-				let path = entry.path();
-				
-				if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("lua") {
-					
-					let app_data = Arc::clone(&s.values);
-					let pairs = cfg.pairs.clone();
-					let strategy = Arc::clone(&strategy);
-					let script_path = path.clone();
+async fn perform_ai_analysis(
+    data: Arc<Mutex<HashMap<String, Vec<PricePair>>>>,
+    cfg: config::Config,
+    strategy: Arc<Box<dyn ArbitrageStrategy>>
+) {
+    let ai = crate::ai::GeminiClient::new();
+    
+    let mut snapshots = Vec::new();
 
-					tokio::task::spawn_blocking(move || {
-						println!("Launching Lua instance for: {:?}", script_path);
-						
-						let lua_res = crate::lua_logic::init_lua(app_data, pairs, strategy);
+    {
+        if let Ok(locked_data) = data.lock() {
+            for pair_name in &cfg.pairs {
+                if let Some(history) = locked_data.get(pair_name) {
+                    if history.len() >= 90 {
+                        snapshots.push((pair_name.clone(), history.clone()));
+                    }
+                }
+            }
+        }
+    }
 
-						match lua_res {
-							Ok(lua) => {
-								if let Err(e) = lua.load(script_path.clone()).exec() {
-									println!("Error in script {:?}: {:?}", script_path, e);
-								}
-							}
-							Err(e) => println!("Failed to init Lua for {:?}: {:?}", script_path, e),
-						}
-					});
-				}
-			}
-		}
-	}
-    println!("Detector running | Mode: {:?} | Pairs: {}", cfg.mode, cfg.pairs.len());
+    for (pair_name, history) in snapshots {
+        if let Ok(d_json) = serde_json::to_string(&history) {
+            if let Ok(opinion) = ai.analyze(&pair_name, &d_json).await {
+                if !opinion.is_empty() {
+                    strategy.alert(&opinion).await;
+                }
+            }
+        }
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let cfg = config::Config::load();
+    let s = stream::create_stream(cfg.pairs.clone());
+    
+    let strategy = Arc::new(create_strategy(&cfg));
 
     let server_data = Arc::clone(&s.values);
     let server_port = cfg.port;
@@ -124,40 +148,47 @@ async fn main() {
         let app = Router::new()
             .route("/chart/:pair", get(handle_get_chart))
             .route("/history/:pair", get(handle_json_history))
-            .layer(axum::Extension(server_data));
+            .layer(Extension(server_data));
 
         let addr = SocketAddr::from(([127, 0, 0, 1], server_port));
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
-        println!("HTTP Server listening on http://{}", addr);
+        println!("🚀 HTTP Server listening on http://{}", addr);
         axum::serve(listener, app).await.unwrap();
     });
 
-    let mut now_time = std::time::Instant::now();
-    let mut first_launch = true;
+    if env::var("LUA_ENABLED").map(|v| v.to_uppercase() == "TRUE").unwrap_or(true) {
+        let app_data = Arc::clone(&s.values);
+        let pairs = cfg.pairs.clone();
+        let strat = Arc::clone(&strategy);
+        
+        tokio::task::spawn(async move {
+            run_lua_scripts(app_data, pairs, strat).await;
+        });
+    }
 
+    let mut ai_timer = std::time::Instant::now();
+    
     loop {
-        if let Ok(data) = s.values.lock() {
-            if let Some(msg) = strategy.analyze(&data) {
-                strategy.alert(&msg).await;
-            }
-            if env::var("GEMINI_ENABLED").unwrap_or_default().to_uppercase() == "TRUE" {
-                if first_launch || now_time.elapsed().as_secs() >= 60 {
-                    let ai = crate::ai::GeminiClient::new();
-                    for pair_name in &cfg.pairs {
-                        if let Some(history) = data.get(pair_name) {
-                            if history.len() >= 90 {
-                                let d = serde_json::to_string(&history).unwrap();
-                                if let Ok(opinion) = ai.analyze(pair_name, &d).await {
-                                    if !opinion.is_empty() { strategy.alert(&opinion).await; }
-                                }
-                            }
-                        }
-                    }
-                    now_time = std::time::Instant::now();
-                    first_launch = false;
+        {
+            if let Ok(data) = s.values.try_lock() { 
+                if let Some(msg) = strategy.analyze(&data) {
+                    let s_clone = Arc::clone(&strategy);
+                    tokio::spawn(async move { s_clone.alert(&msg).await });
                 }
             }
         }
+
+        if env::var("GEMINI_ENABLED").unwrap_or_default() == "TRUE" && ai_timer.elapsed().as_secs() >= 60 {
+            let data_clone = Arc::clone(&s.values);
+            let cfg_clone = cfg.clone();
+            let strat_clone = Arc::clone(&strategy);
+            
+            tokio::spawn(async move {
+                perform_ai_analysis(data_clone, cfg_clone, strat_clone).await;
+            });
+            ai_timer = std::time::Instant::now();
+        }
+
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 }

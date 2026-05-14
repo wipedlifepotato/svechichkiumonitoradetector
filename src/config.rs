@@ -30,7 +30,7 @@ struct Args {
     
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Config {
     pub pairs: Vec<String>,
     pub mode: Mode,
